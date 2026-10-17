@@ -1,0 +1,617 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#176b55">
+<title>مصروفاتي | ميزانيتي الشخصية</title>
+<style>
+:root {
+  --green:#176b55; --bg:#f3f6f4; --card:#fff;
+  --text:#172b25; --muted:#718078; --border:#e0e8e3;
+  --red:#c43f48; --light:#e6f3ed;
+}
+* { box-sizing:border-box; }
+body {
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:15px;
+}
+header { background:var(--green); color:white; padding:25px 16px 30px; }
+.wrap { max-width:850px; margin:auto; padding:0 14px; }
+h1 { font-size:25px; margin:0 0 5px; }
+header p { margin:0; opacity:.85; }
+main { padding-top:16px; padding-bottom:35px; }
+.card {
+  background:var(--card); border:1px solid var(--border);
+  border-radius:15px; padding:16px; margin-bottom:14px;
+}
+h2 { font-size:18px; margin:0 0 14px; }
+.stats { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-bottom:14px; }
+.stat { background:white; padding:15px 12px; border:1px solid var(--border); border-radius:13px; min-width:0; }
+.stat small { display:block; color:var(--muted); margin-bottom:8px; }
+.stat strong { font-size:21px; overflow-wrap:anywhere; }
+.green { color:var(--green); }
+.red { color:var(--red); }
+label { display:block; font-size:13px; color:var(--muted); margin-bottom:6px; }
+input,select,button {
+  font:inherit; border-radius:9px; padding:11px;
+}
+input,select {
+  width:100%; border:1px solid #d5dfd8;
+  background:white; color:var(--text); min-width:0;
+}
+input:focus,select:focus { outline:2px solid #a5d9c3; }
+.form-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.field { min-width:0; }
+.field.full { grid-column:1/-1; }
+button { cursor:pointer; border:0; font-weight:600; }
+.primary { background:var(--green); color:white; }
+.secondary { background:var(--light); color:var(--green); }
+.danger { background:#fff0f0; color:var(--red); }
+.actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:14px; }
+.actions button { flex:1; }
+.period { color:var(--muted); font-size:13px; margin-top:9px; }
+.progress { height:9px; background:#e8eee9; border-radius:20px; overflow:hidden; margin-top:12px; }
+.progress div { height:100%; width:0; background:var(--green); transition:width .2s; }
+.item { border-bottom:1px solid var(--border); padding:13px 0; }
+.item:last-child { border-bottom:0; padding-bottom:0; }
+.item-top { display:flex; justify-content:space-between; gap:10px; }
+.item-title { font-weight:650; overflow-wrap:anywhere; }
+.item-sub { color:var(--muted); font-size:12px; margin-top:5px; }
+.item-buttons { display:flex; gap:6px; margin-top:8px; }
+.item-buttons button { padding:6px 10px; font-size:12px; }
+.amount { white-space:nowrap; font-weight:700; }
+.category-row { margin:12px 0; }
+.category-top { display:flex; justify-content:space-between; gap:8px; font-size:13px; }
+.category-bar { background:#e8eee9; height:7px; border-radius:10px; margin-top:7px; overflow:hidden; }
+.category-bar div { height:100%; background:#52a488; border-radius:10px; }
+.muted { color:var(--muted); font-size:13px; }
+.empty { padding:22px 0; text-align:center; color:var(--muted); }
+footer { text-align:center; color:var(--muted); font-size:12px; padding:5px 0 20px; }
+@media(max-width:420px) {
+  .stat strong { font-size:18px; }
+  .form-grid { gap:10px; }
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1>💰 مصروفاتي</h1>
+    <p>تابع راتبك ومصروفاتك بطريقة بسيطة</p>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="card">
+    <h2>⚙️ إعدادات الميزانية</h2>
+    <div class="form-grid">
+      <div class="field">
+        <label for="salary">الراتب الشهري (ر.ق)</label>
+        <input id="salary" type="number" min="0" step="0.01" value="9000">
+      </div>
+      <div class="field">
+        <label for="payday">يوم استلام الراتب</label>
+        <select id="payday"></select>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="primary" id="saveSettings">حفظ الإعدادات</button>
+    </div>
+    <div class="period" id="period"></div>
+  </section>
+
+  <section class="stats">
+    <div class="stat">
+      <small>الراتب</small>
+      <strong id="salaryStat">9,000 ر.ق</strong>
+    </div>
+    <div class="stat">
+      <small>إجمالي المصروفات</small>
+      <strong class="red" id="spentStat">0 ر.ق</strong>
+    </div>
+    <div class="stat">
+      <small>المتبقي من الراتب</small>
+      <strong class="green" id="balanceStat">9,000 ر.ق</strong>
+    </div>
+    <div class="stat">
+      <small>نسبة الإنفاق</small>
+      <strong id="percentStat">0%</strong>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>📊 استخدام الراتب</h2>
+    <div class="progress"><div id="progressBar"></div></div>
+    <p class="muted" id="progressText">لم تسجل أي مصروفات بعد.</p>
+  </section>
+
+  <section class="card" id="formCard">
+    <h2 id="formTitle">➕ إضافة مصروف جديد</h2>
+    <form id="expenseForm">
+      <input type="hidden" id="editId">
+      <div class="form-grid">
+        <div class="field">
+          <label for="amount">المبلغ (ر.ق) *</label>
+          <input id="amount" type="number" min="0.01" step="0.01" required placeholder="مثال: 25">
+        </div>
+        <div class="field">
+          <label for="category">التصنيف *</label>
+          <select id="category" required>
+            <option>بقالة وسوبرماركت</option>
+            <option>مطاعم وطعام</option>
+            <option>وقود ومواصلات</option>
+            <option>إيجار وسكن</option>
+            <option>فواتير وإنترنت</option>
+            <option>هاتف</option>
+            <option>صحة ودواء</option>
+            <option>الأسرة</option>
+            <option>تسوق</option>
+            <option>ترفيه</option>
+            <option>سيارة وصيانة</option>
+            <option>ادخار</option>
+            <option>أخرى</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="date">التاريخ *</label>
+          <input id="date" type="date" required>
+        </div>
+        <div class="field">
+          <label for="note">البيان أو اسم المتجر</label>
+          <input id="note" type="text" maxlength="100" placeholder="مثال: مشتريات كارفور">
+        </div>
+      </div>
+      <div class="actions">
+        <button class="primary" id="submitBtn" type="submit">حفظ المصروف</button>
+        <button class="secondary" id="cancelEdit" type="button" hidden>إلغاء التعديل</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2>🧾 سجل المصروفات</h2>
+    <div class="form-grid">
+      <div class="field">
+        <label for="filterCategory">تصفية حسب التصنيف</label>
+        <select id="filterCategory">
+          <option value="">كل التصنيفات</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="search">بحث في البيان</label>
+        <input id="search" type="search" placeholder="ابحث عن متجر أو مصروف">
+      </div>
+    </div>
+    <p class="muted" id="count"></p>
+    <div id="expenseList"></div>
+  </section>
+
+  <section class="card">
+    <h2>📈 المصروفات حسب التصنيف</h2>
+    <div id="categorySummary"></div>
+  </section>
+
+  <section class="card">
+    <h2>💾 النسخ الاحتياطي</h2>
+    <p class="muted">احتفظ بنسخة من بياناتك لاستعادتها إذا غيّرت المتصفح أو الهاتف.</p>
+    <div class="actions">
+      <button class="secondary" id="exportBtn">تصدير نسخة احتياطية</button>
+      <button class="secondary" id="importBtn">استعادة نسخة احتياطية</button>
+      <input id="importFile" type="file" accept=".json,application/json" hidden>
+    </div>
+    <p class="muted">البيانات محفوظة على هذا المتصفح فقط. التصدير المنتظم مهم لحمايتها.</p>
+  </section>
+
+  <footer>مصروفاتي — تطبيق شخصي مجاني</footer>
+</main>
+
+<script>
+(function () {
+"use strict";
+
+const $ = id => document.getElementById(id);
+const STORAGE_KEY = "masroofati_v1";
+
+const defaultSettings = { salary: 9000, payday: 9 };
+let expenses = [];
+let settings = { ...defaultSettings };
+
+function localDate(d = new Date()) {
+  return [
+    d.getFullYear(),
+    String(d.getMonth() + 1).padStart(2, "0"),
+    String(d.getDate()).padStart(2, "0")
+  ].join("-");
+}
+
+function money(value) {
+  return Number(value || 0).toLocaleString("ar-QA", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2
+  }) + " ر.ق";
+}
+
+function escapeHTML(value) {
+  return String(value ?? "").replace(/[&<>"']/g, c => ({
+    "&":"&amp;", "<":"&lt;", ">":"&gt;",
+    '"':"&quot;", "'":"&#39;"
+  })[c]);
+}
+
+function loadData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const data = JSON.parse(raw);
+      if (Array.isArray(data.expenses)) {
+        expenses = data.expenses.filter(e =>
+          e && typeof e.date === "string" &&
+          Number.isFinite(Number(e.amount)) &&
+          Number(e.amount) > 0 &&
+          typeof e.category === "string"
+        );
+      }
+      if (data.settings) {
+        const salary = Number(data.settings.salary);
+        const payday = Number(data.settings.payday);
+        if (Number.isFinite(salary) && salary >= 0) {
+          settings.salary = salary;
+        }
+        if (Number.isInteger(payday) && payday >= 1 && payday <= 28) {
+          settings.payday = payday;
+        }
+      }
+    }
+  } catch (error) {
+    alert("تعذر قراءة البيانات المحفوظة. لا تمسح بيانات المتصفح.");
+  }
+}
+
+function saveData() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      settings, expenses
+    }));
+    return true;
+  } catch (error) {
+    alert("تعذر الحفظ. تأكد من توفر مساحة في المتصفح.");
+    return false;
+  }
+}
+
+function periodFor(dateString) {
+  const d = new Date(dateString + "T12:00:00");
+  let year = d.getFullYear();
+  let month = d.getMonth();
+  if (d.getDate() < settings.payday) {
+    month--;
+  }
+
+  const start = new Date(year, month, settings.payday, 12);
+  const next = new Date(year, month + 1, settings.payday, 12);
+  const end = new Date(next.getFullYear(), next.getMonth(),
+                       settings.payday - 1, 12);
+
+  return {
+    start: localDate(start),
+    end: localDate(end),
+    label: start.toLocaleDateString("ar-QA", {
+      day: "numeric", month: "long", year: "numeric"
+    }) + " — " + end.toLocaleDateString("ar-QA", {
+      day: "numeric", month: "long", year: "numeric"
+    })
+  };
+}
+
+function currentPeriod() {
+  return periodFor(localDate());
+}
+
+function periodExpenses() {
+  const p = currentPeriod();
+  return expenses.filter(e => e.date >= p.start && e.date <= p.end);
+}
+
+function fillPaydays() {
+  $("payday").innerHTML = Array.from({length:28}, (_,i) =>
+    `<option value="${i+1}">${i+1}</option>`
+  ).join("");
+}
+
+function render() {
+  const period = currentPeriod();
+  const list = periodExpenses();
+  const total = list.reduce((sum,e) => sum + Number(e.amount), 0);
+  const balance = settings.salary - total;
+  const percent = settings.salary > 0 ? total / settings.salary * 100 : 0;
+
+  $("salaryStat").textContent = money(settings.salary);
+  $("spentStat").textContent = money(total);
+  $("balanceStat").textContent = money(balance);
+  $("balanceStat").className = balance < 0 ? "red" : "green";
+  $("percentStat").textContent = Math.round(percent) + "%";
+  $("progressBar").style.width = Math.min(100, Math.max(0,percent)) + "%";
+  $("progressText").textContent = settings.salary === 0
+    ? "أدخل راتبك لحساب نسبة الإنفاق."
+    : percent > 100
+      ? "تنبيه: تجاوزت المصروفات قيمة الراتب."
+      : "استخدمت " + Math.round(percent) + "% من راتبك.";
+  $("period").textContent = "فترة الراتب الحالية: " + period.label;
+
+  renderList();
+  renderCategories(list);
+}
+
+function renderList() {
+  const p = currentPeriod();
+  const categoryFilter = $("filterCategory").value;
+  const query = $("search").value.trim().toLowerCase();
+
+  const filtered = expenses
+    .filter(e => e.date >= p.start && e.date <= p.end)
+    .filter(e => !categoryFilter || e.category === categoryFilter)
+    .filter(e => (e.note || "").toLowerCase().includes(query) ||
+                 e.category.toLowerCase().includes(query))
+    .sort((a,b) => b.date.localeCompare(a.date));
+
+  $("count").textContent = filtered.length + " مصروف في فترة الراتب الحالية";
+
+  if (!filtered.length) {
+    $("expenseList").innerHTML =
+      '<div class="empty">لا توجد مصروفات مطابقة في فترة الراتب الحالية.</div>';
+    return;
+  }
+
+  $("expenseList").innerHTML = filtered.map(e => `
+    <div class="item">
+      <div class="item-top">
+        <div>
+          <div class="item-title">${escapeHTML(e.note || e.category)}</div>
+          <div class="item-sub">${escapeHTML(e.category)} · ${escapeHTML(e.date)}</div>
+        </div>
+        <div class="amount red">${money(e.amount)}</div>
+      </div>
+      <div class="item-buttons">
+        <button class="secondary" data-edit="${escapeHTML(e.id)}">تعديل</button>
+        <button class="danger" data-delete="${escapeHTML(e.id)}">حذف</button>
+      </div>
+    </div>
+  `).join("");
+}
+
+function renderCategories(list) {
+  const totals = {};
+  list.forEach(e => {
+    totals[e.category] = (totals[e.category] || 0) + Number(e.amount);
+  });
+
+  const entries = Object.entries(totals).sort((a,b) => b[1]-a[1]);
+  const total = entries.reduce((sum,e) => sum + e[1], 0);
+
+  if (!entries.length) {
+    $("categorySummary").innerHTML =
+      '<div class="empty">ستظهر هنا تفاصيل التصنيفات بعد تسجيل المصروفات.</div>';
+    return;
+  }
+
+  $("categorySummary").innerHTML = entries.map(([name,amount]) => `
+    <div class="category-row">
+      <div class="category-top">
+        <span>${escapeHTML(name)}</span>
+        <strong>${money(amount)}</strong>
+      </div>
+      <div class="category-bar">
+        <div style="width:${total ? amount / total * 100 : 0}%"></div>
+      </div>
+    </div>
+  `).join("");
+}
+
+function resetForm() {
+  $("expenseForm").reset();
+  $("editId").value = "";
+  $("date").value = localDate();
+  $("formTitle").textContent = "➕ إضافة مصروف جديد";
+  $("submitBtn").textContent = "حفظ المصروف";
+  $("cancelEdit").hidden = true;
+}
+
+function startEdit(id) {
+  const e = expenses.find(x => x.id === id);
+  if (!e) return;
+
+  $("editId").value = e.id;
+  $("amount").value = e.amount;
+  $("category").value = e.category;
+  $("date").value = e.date;
+  $("note").value = e.note || "";
+  $("formTitle").textContent = "✏️ تعديل المصروف";
+  $("submitBtn").textContent = "حفظ التعديلات";
+  $("cancelEdit").hidden = false;
+  $("formCard").scrollIntoView({behavior:"smooth",block:"start"});
+}
+
+function populateFilters() {
+  const categories = [...new Set([
+    ...Array.from($("category").options).map(o => o.value),
+    ...expenses.map(e => e.category)
+  ])].filter(Boolean);
+
+  const previous = $("filterCategory").value;
+  $("filterCategory").innerHTML =
+    '<option value="">كل التصنيفات</option>' +
+    categories.map(c =>
+      `<option value="${escapeHTML(c)}">${escapeHTML(c)}</option>`
+    ).join("");
+
+  if (categories.includes(previous)) $("filterCategory").value = previous;
+}
+
+fillPaydays();
+loadData();
+
+$("salary").value = settings.salary;
+$("payday").value = settings.payday;
+$("date").value = localDate();
+populateFilters();
+render();
+
+$("saveSettings").addEventListener("click", () => {
+  const salary = Number($("salary").value);
+  const payday = Number($("payday").value);
+
+  if (!Number.isFinite(salary) || salary < 0) {
+    alert("أدخل راتبًا صحيحًا.");
+    return;
+  }
+
+  settings = { salary, payday };
+  if (saveData()) {
+    render();
+    alert("تم حفظ إعدادات الميزانية.");
+  }
+});
+
+$("expenseForm").addEventListener("submit", event => {
+  event.preventDefault();
+
+  const amount = Number($("amount").value);
+  const date = $("date").value;
+  const category = $("category").value;
+  const note = $("note").value.trim();
+  const editId = $("editId").value;
+
+  if (!Number.isFinite(amount) || amount <= 0 || !date || !category) {
+    alert("تأكد من إدخال مبلغ وتاريخ وتصنيف صحيح.");
+    return;
+  }
+
+  const existing = editId ? expenses.find(e => e.id === editId) : null;
+  const entry = {
+    id: existing ? existing.id : (
+      crypto.randomUUID ? crypto.randomUUID() :
+      Date.now().toString() + Math.random().toString(16).slice(2)
+    ),
+    amount, date, category, note
+  };
+
+  const oldExpenses = expenses.slice();
+  if (existing) {
+    expenses = expenses.map(e => e.id === editId ? entry : e);
+  } else {
+    expenses.push(entry);
+  }
+
+  if (!saveData()) {
+    expenses = oldExpenses;
+    return;
+  }
+
+  resetForm();
+  populateFilters();
+  render();
+});
+
+$("cancelEdit").addEventListener("click", resetForm);
+$("filterCategory").addEventListener("change", renderList);
+$("search").addEventListener("input", renderList);
+
+$("expenseList").addEventListener("click", event => {
+  const editButton = event.target.closest("[data-edit]");
+  const deleteButton = event.target.closest("[data-delete]");
+
+  if (editButton) {
+    startEdit(editButton.dataset.edit);
+  }
+
+  if (deleteButton) {
+    const id = deleteButton.dataset.delete;
+    const e = expenses.find(x => x.id === id);
+    if (!e || !confirm("هل تريد حذف هذا المصروف؟")) return;
+
+    const oldExpenses = expenses;
+    expenses = expenses.filter(x => x.id !== id);
+    if (!saveData()) {
+      expenses = oldExpenses;
+      return;
+    }
+    populateFilters();
+    render();
+    if ($("editId").value === id) resetForm();
+  }
+});
+
+$("exportBtn").addEventListener("click", () => {
+  const data = JSON.stringify({
+    app:"masroofati", version:1, settings, expenses
+  }, null, 2);
+  const blob = new Blob([data], {type:"application/json;charset=utf-8"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "masroofati-backup.json";
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
+
+$("importBtn").addEventListener("click", () => $("importFile").click());
+
+$("importFile").addEventListener("change", async event => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  try {
+    const data = JSON.parse(await file.text());
+    if (!data || !Array.isArray(data.expenses) || !data.settings) {
+      throw new Error("invalid");
+    }
+
+    const valid = data.expenses.every(e =>
+      e && typeof e.date === "string" &&
+      Number.isFinite(Number(e.amount)) && Number(e.amount) > 0 &&
+      typeof e.category === "string"
+    );
+    if (!valid) throw new Error("invalid");
+
+    const salary = Number(data.settings.salary);
+    const payday = Number(data.settings.payday);
+    if (!Number.isFinite(salary) || salary < 0 ||
+        !Number.isInteger(payday) || payday < 1 || payday > 28) {
+      throw new Error("invalid");
+    }
+
+    if (!confirm("ستُستبدل البيانات الحالية بمحتويات النسخة الاحتياطية. هل تريد المتابعة؟")) {
+      event.target.value = "";
+      return;
+    }
+
+    const oldExpenses = expenses;
+    const oldSettings = settings;
+    expenses = data.expenses;
+    settings = {salary, payday};
+
+    if (!saveData()) {
+      expenses = oldExpenses;
+      settings = oldSettings;
+      return;
+    }
+
+    $("salary").value = settings.salary;
+    $("payday").value = settings.payday;
+    resetForm();
+    populateFilters();
+    render();
+    alert("تمت استعادة النسخة الاحتياطية.");
+  } catch (error) {
+    alert("الملف غير صالح أو ليس نسخة احتياطية من تطبيق مصروفاتي.");
+  } finally {
+    event.target.value = "";
+  }
+});
+})();
+</script>
+</body>
+</html>
